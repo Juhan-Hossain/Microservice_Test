@@ -1,0 +1,105 @@
+version: '3.4'
+services:
+  catalogdb:
+    image: postgres
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin1234
+      - POSTGRES_DB=CatalogDb
+    volumes:
+      - postgres_catalog:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+   
+  basketdb:
+    image: postgres
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin1234
+      - POSTGRES_DB=BasketDb
+    volumes:
+      - postgres_basket:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  distributedcache:
+    image: redis
+    ports:
+      - "6379:6379"
+
+  orderdb:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=SwN12345678
+    ports:
+      - "1434:1433"
+
+  catalog.api:
+    image: ${DOCKER_REGISTRY-}catalogapi
+    build:
+      context: .
+      dockerfile: Services/Catalog/Catalog.API/Dockerfile
+
+  basket.api:
+    image: ${DOCKER_REGISTRY-}basketapi
+    build:
+      context: .
+      dockerfile: Services/Basket/Basket.API/Dockerfile
+
+  discount.grpc:
+    image: ${DOCKER_REGISTRY-}discountgrpc
+    build:
+      context: .
+      dockerfile: Services/Discount/Discount.Grpc/Dockerfile
+
+  user-service:
+    image: ${DOCKER_REGISTRY-}userservice
+    build:
+      context: ./UserService
+      dockerfile: Dockerfile
+      args:
+        - BUILD_CONFIGURATION=Release
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=5001
+      - ASPNETCORE_HTTPS_PORTS=5002
+      - ConnectionStrings__DefaultConnection=Server=sql-server;Database=UserDb;User Id=sa;Password=Your_password123;TrustServerCertificate=True
+      - Jwt__Key=super-secret-key-at-least-32-characters-long
+      - Jwt__Issuer=user-service
+      - Jwt__Audience=product-service
+      - RabbitMQ__Hostname=rabbitmq
+    ports:
+      - "5001:5001"
+      - "5002:5002"
+    depends_on:
+      - sql-server
+      - rabbitmq
+
+
+  sql-server:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Your_password123
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+volumes:
+  postgres_catalog:
+  postgres_basket:
+  mssql_data:
+  rabbitmq_data:

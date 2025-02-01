@@ -1,0 +1,12 @@
+﻿global using Basket.API.Entities;
+global using BuildingBlocks.CQRS;
+global using FluentValidation;
+global using Carter;
+global using Mapster;
+global using MediatR;
+global using Basket.API.Data;
+global using BuildingBlocks.Behaviors;
+global using BuildingBlocks.Exceptions.Handler;
+global using HealthChecks.UI.Client;
+global using Marten;
+global using Microsoft.AspNetCore.Diagnostics.HealthChecks;
